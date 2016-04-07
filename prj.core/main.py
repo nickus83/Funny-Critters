@@ -41,7 +41,8 @@ class Animal(pygame.sprite.Sprite):
 
         self.image = self.image_down[0]  # init image
         self.rect = self.image.get_rect()
-
+        # if animal_name == "sheep":
+        #     self.rect.center = (width / 2, height / 2)
 
     def move_down(self):
         self.rect.move_ip(0, 5)
@@ -89,6 +90,9 @@ class Sheep(Animal):
         self.rect.center = (width / 2, height / 2)
 
     def update(self, pressed_keys):
+        affected_rects = []
+        affected_rects.append(grid_point_check(self.rect.x, self.rect.y))
+        affected_rects.append(self.rect)  # before move
 
         if pressed_keys[K_DOWN]:
             self.move_down()
@@ -108,6 +112,10 @@ class Sheep(Animal):
         elif self.rect.bottom >= height:
             self.rect.bottom = height
 
+        affected_rects.append(grid_point_check(self.rect.x, self.rect.y))
+        affected_rects.append(self.rect)  # before move
+        return affected_rects
+
 
 class Wolf(Animal):
     """Sheep animal, controlled with direction keys."""
@@ -117,7 +125,11 @@ class Wolf(Animal):
         super(Wolf, self).__init__(animal_images)
 
     def update(self, pressed_keys):
+        affected_rects = []
+        affected_rects.append(grid_point_check(self.rect.x, self.rect.y))
+        affected_rects.append(self.rect)  # before move
 
+        # print(self.rect)
         if pressed_keys[K_s]:
             self.move_down()
         elif pressed_keys[K_a]:
@@ -135,7 +147,14 @@ class Wolf(Animal):
             self.rect.top = 0
         elif self.rect.bottom >= height:
             self.rect.bottom = height
-       
+        # print(self.rect.x, self.rect.y)
+        # import pdb; pdb.set_trace()
+
+        affected_rects.append(grid_point_check(self.rect.x, self.rect.y))
+        affected_rects.append(self.rect)  # after move
+
+        return affected_rects
+
 
 class Item(pygame.sprite.Sprite):
     """Items on the ground."""
@@ -159,25 +178,40 @@ class Grass(pygame.sprite.Sprite):
         self.rect.center = (random.randrange(width), random.randrange(height))
 
 
+def grid_point_check(x, y, base=32):
+    """Return grid indexes of given point"""
+    ind_x = round_32(x, base=base)
+    ind_y = round_32(y, base=base)
+
+    grid[ind_x][ind_y] = 1
+
+    return pygame.Rect(ind_x * 32, ind_y * 32, base, base)
+
+
 if __name__ == '__main__':
 
-    # size = width, height = 1280, 800
-    size = width, height = 1920, 1080
+    size = width, height = 1280, 800
+    # size = width, height = 1920, 1080
+    grid = []
     FPS = 20
     done = False
     clock = pygame.time.Clock()
 
+    update_rects = []  # list of rects to update
+
     pygame.init()
-    display_mode = pygame.FULLSCREEN | pygame.HWSURFACE
-    # display_mode = 0
+    # display_mode = pygame.FULLSCREEN | pygame.HWSURFACE
+    display_mode = 0
     screen = pygame.display.set_mode(size, display_mode)
 
     env_images, grass_images, animal_images = import_images()
 
     background = pygame.Surface(screen.get_size())
     for x in range(width / 32):
+        grid.append([])
         for y in range(height / 32):
             background.blit(env_images['background_tile'], (x * 32, y * 32))
+            grid[x].append(0)
 
     animals = pygame.sprite.Group()
     items = pygame.sprite.Group()
@@ -196,7 +230,19 @@ if __name__ == '__main__':
         new_grass = Grass()
         grass.add(new_grass)
 
+    # initial screen
+    screen.blit(background, (0, 0))  # first background update
+    for entity in grass:
+        screen.blit(entity.image, entity.rect)
+    for entity in items:
+        screen.blit(entity.image, entity.rect)  # second items update
+    for entity in animals:
+        screen.blit(entity.image, entity.rect)  # tird animals update
+    pygame.display.update()
+
     while not done:
+        del update_rects[:]
+
         for event in pygame.event.get():
             if event.type == KEYDOWN:
                 if event.key == K_ESCAPE:
@@ -208,12 +254,17 @@ if __name__ == '__main__':
                 done = True
         
         pressed_keys = pygame.key.get_pressed()
-        sheep.update(pressed_keys)
-        wolf.update(pressed_keys)
+        update_rects += sheep.update(pressed_keys)
+        update_rects += wolf.update(pressed_keys)
 
         if pygame.sprite.collide_mask(sheep, wolf):
             sheep.kill()
 
+        for x in range(width / 32):
+            for y in range(height / 32):
+                if grid[x][y] == 1:
+                    screen.blit(env_images['background_tile'], (x * 32, y * 32))
+                    grid[x][y] == 0
         screen.blit(background, (0, 0))  # first background update
         for entity in grass:
             screen.blit(entity.image, entity.rect)
@@ -221,8 +272,10 @@ if __name__ == '__main__':
             screen.blit(entity.image, entity.rect)  # second items update
         for entity in animals:
             screen.blit(entity.image, entity.rect)  # tird animals update
-      
-        pygame.display.update()
+
+        pygame.display.update(update_rects)
+        # print(update_rects)
         clock.tick(FPS)
 
     pygame.quit()
+    # print(grid)
