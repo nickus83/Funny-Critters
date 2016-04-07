@@ -8,7 +8,7 @@ from pygame.locals import *
 
 def load_image(name, colorkey=None):
 
-    fullname = osp.join('data', 'images', name)
+    fullname = osp.join('..', 'prj.data', 'images', name)
 
     try:
         image = pygame.image.load(fullname)
@@ -35,7 +35,7 @@ def load_sound(name):
     if not pygame.mixer:
         return NoneSound()
 
-    fullname = osp.join('data', name)
+    fullname = osp.join('..', 'prj.data', name)
 
     try:
         sound = pygame.mixer.Sound(fullname)
@@ -48,7 +48,7 @@ def load_sound(name):
 
 def load_png(name, colorkey=None):
 
-    fullname = osp.join('data', 'images', name)
+    fullname = osp.join('..', 'prj.data', 'images', name)
 
     try:
         image = pygame.image.load(fullname)
