@@ -157,6 +157,7 @@ def import_images():
                 Wolf_up2=wolf_source.subsurface(128, 154, 64, 38),
     )]
 
+
 def round_32(x, base=32):
     """Round x to base. Default 32."""
     if x == 0:

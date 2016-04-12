@@ -175,6 +175,7 @@ if __name__ == '__main__':
     env_images, grass_images, animal_images = import_images()
 
     background = pygame.Surface(screen.get_size())
+
     for x in range(width / 32):
         for y in range(height / 32):
             background.blit(env_images['background_tile'], (x * 32, y * 32))
