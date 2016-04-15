@@ -5,24 +5,34 @@ import math
 import numpy as np
 import pygame
 import random
+import sys
 from pygame.locals import *
 
 
-path = r"C:\Users\utkin\Documents\GitHub\Funny-Critters\prj.data\images\animal_test.png"
-# path = r"C:\Users\utkin\Documents\GitHub\Funny-Critters\prj.data\images\test.png"
+def getPixelArray(filename, rect=None):
 
-
-def getPixelArray(filename):
+    sys.path.append("../prj.core")
     try:
-        image = pygame.image.load(filename)
+        from utils import load_png
+    except Exception, e:
+        print(e)
+    finally:
+        del sys.path[-1]
+
+    try:
+        image = load_png(filename)
     except pygame.error, message:
         print "Cannot load image:", filename
         raise SystemExit, message
-    assert(image.get_size()[0] == image.get_size()[1])
-    return pygame.surfarray.pixels3d(image)
+
+    part = image.subsurface(rect)
+
+    assert(part.get_size()[0] == part.get_size()[1])
+    return pygame.surfarray.pixels3d(part)
 
 
 def make_grid((width, height), step=80):
+
     grid = []
     for x in xrange(width / step):
         grid.append([])
@@ -76,17 +86,18 @@ def draw_tools(tools, grid, step=20, padding=1):
                                            step - padding))
 
 
-def main():
+def main(image_name, target_rect):
     size = width, height = 1280, 800
     FPS = 10
     screen = pygame.display.set_mode(size, 0)
     clock = pygame.time.Clock()
 
-    pxarray = getPixelArray(path)  # only square images apply
+    pxarray = getPixelArray(image_name,
+                            target_rect)
 
     field = pygame.Surface((800, 800))  # main area with image
     grid_step = 800 / len(pxarray[0])
-    # grid_step = 20
+
     grid = make_grid(field.get_size(), grid_step)
 
     tools = pygame.Surface((475, 600))  # color palette and buttons
@@ -97,7 +108,7 @@ def main():
     tumbnails.fill(pygame.Color("grey"))
 
     image, image_palette = image_to_grid(grid, pxarray)
-    # import pdb; pdb.set_trace()
+
     row_tool_count = column_tool_count = 0
     tools_grid.append([])
     for color in image_palette:
@@ -136,4 +147,20 @@ def main():
     pygame.quit()
 
 if __name__ == '__main__':
-    main()
+    from argparse import ArgumentParser
+    p = ArgumentParser(description='image viewer')
+    p.add_argument('-i', '--image', required=True,
+                   help="name of image in data/images dir (only .png)")
+    p.add_argument('-l', '--left', default=0, type=int,
+                   required=False, help="left corner of the rect taken out of the picture")
+    p.add_argument('-t', '--top', default=0, type=int,
+                   required=False, help="top corner of the rect taken out of the picture")
+    p.add_argument('-w', '--width', default=32, type=int,
+                   required=True, help="width of the rect taken out of the picture")
+    p.add_argument('-he', '--height', default=32, type=int,
+                   required=True, help="height of the rect taken out of the picture")
+    args = p.parse_args()
+
+    target_rect = pygame.Rect(args.left, args.top, args.width, args.height)
+
+    main(args.image, target_rect)
