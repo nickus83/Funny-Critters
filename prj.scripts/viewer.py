@@ -18,6 +18,7 @@ def getPixelArray(filename, rect=None):
         print(e)
     finally:
         del sys.path[-1]
+        
 
     try:
         image = load_png(filename)
@@ -86,6 +87,12 @@ def draw_tools(tools, grid, step=20, padding=1):
                                            step - padding))
 
 
+def get_mouse_pos(x, y):
+    """Returns where is mouse pinter"""
+
+
+
+
 def main(image_name, target_rect):
     size = width, height = 1280, 800
     FPS = 10
@@ -134,6 +141,9 @@ def main(image_name, target_rect):
             if event.type == KEYDOWN:
                 if event.key == K_ESCAPE:
                     done = True
+            elif event.type == MOUSEBUTTONDOWN:
+                pos = pygame.mouse.get_pos()
+                print(pos)
             elif event.type == pygame.QUIT:
                 done = True
 
