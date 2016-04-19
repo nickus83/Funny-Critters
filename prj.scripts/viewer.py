@@ -125,10 +125,11 @@ class ToolsGrid(object):
     def insert_palette(self, palette):
         for x, row in enumerate(self.data):
             for y, column in enumerate(row):
+
                 if len(palette) > 0:
-                    column = ColorCell(x, y, self.step, palette.pop())
+                    self.data[x][y] = ColorCell(x, y, self.step, palette.pop())
                 else:
-                    column = None
+                    column = 0
     
 
     def draw_tools(self, padding=1):
@@ -136,11 +137,14 @@ class ToolsGrid(object):
         width, height = self.tools.get_size()
 
         for x, row in enumerate(self.data):
-            print(x)
+            # print(len(row))
+            print(row)
             for y, column in enumerate(row):
+                # print(self.data[x][y])
+
+                # print(type(column), type(y))
                 if column != 0:
-                    print(type(column))
-                    print(column)
+                    # print(column)
                     column.padding = padding
                     column.draw_cell(self.tools)
 
