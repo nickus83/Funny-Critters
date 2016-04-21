@@ -41,7 +41,19 @@ class ColorCell(object):
         self.color = color
         self.padding = padding
 
-    def draw_cell(self, surface):
+    def draw_cell(self, surface, background_color=None):
+        """Draws cell with padding."""
+        if background_color:
+            surface.fill(background_color, self.rect)
+        else:
+            surface.fill(pygame.Color("gray"), self.rect)
+
+        surface.fill(
+            self.color, self.rect.inflate(-self.padding, -self.padding))
+
+    def highligh_cell(self, surface):
+        """Draw cell with highlighted padding."""
+        surface.fill(pygame.Color("red"), self.rect)
         surface.fill(
             self.color, self.rect.inflate(-self.padding, -self.padding))
 
@@ -102,8 +114,14 @@ class FieldGrid(object):
 
         row, column = (int(math.ceil(pos[0] / self.step)),
                        int(math.ceil(pos[1] / self.step)))
-        print(row, column)
-        return self.data[row][column]
+
+        return row, column
+
+    def change_pixel(self, row, column, color):
+
+        target_cell = self.data[row][column]
+        target_cell.color = color
+        target_cell.draw_cell(self.field)
 
 
 class ToolsGrid(object):
@@ -141,16 +159,15 @@ class ToolsGrid(object):
         for x, row in enumerate(self.data):
             for y, column in enumerate(row):
                 if column != 0:
-                    # print(column.rect)
                     column.padding = padding
                     column.draw_cell(self.tools)
 
     def get_idx(self, pos):
         """Return cell of tools grid for given position."""
-        
-        row, column = (int(math.ceil((pos[0] - 805)/ self.step)),
+
+        row, column = (int(math.ceil((pos[0] - 805) / self.step)),
                        int(math.ceil(pos[1] / self.step)))
-        
+
         if self.data[column][row] != 0:
             return self.data[column][row]
 
@@ -167,7 +184,6 @@ def main(image_name, target_rect):
     grid = FieldGrid(pxarray)
     tools = ToolsGrid()
 
-
     tumbnails = pygame.Surface((480, 195))  # thumbnails
     tumbnails.fill(pygame.Color("grey"))
 
@@ -181,7 +197,7 @@ def main(image_name, target_rect):
     grid.draw_field()
 
     done = False
-    field_cell = None
+    selected_color = None
 
     while not done:  # main loop
         for event in pygame.event.get():
@@ -191,14 +207,18 @@ def main(image_name, target_rect):
             elif event.type == MOUSEBUTTONDOWN:
                 pos = pygame.mouse.get_pos()
                 if 0 <= pos[0] <= 800 and 0 <= pos[1] <= 800:  # in the field area
-                    field_cell = grid.get_idx(pos)
-                    print(field_cell.color)
-                    # target_cell.color = pygame.Color(255, 255, 255)
-                    # target_cell.draw_cell(grid.field)
-                elif 805 <= pos[0] <= 1280 and 0 <= pos[1] <= 600:
+                    row, column = grid.get_idx(pos)
+                    if selected_color:
+                        grid.change_pixel(row, column, selected_color)
+                        selected_color = None  # Empty selected color
+                        tools_cell.draw_cell(tools.tools)
+
+                elif 805 <= pos[0] <= 1280 and 0 <= pos[1] <= 600:  # in the tools area
                     tools_cell = tools.get_idx(pos)
                     if tools_cell:
-                        print(tools_cell.color)
+                        selected_color = tools_cell.color
+                        tools_cell.draw_cell(tools.tools, pygame.Color("red"))
+
             elif event.type == pygame.QUIT:
                 done = True
 
