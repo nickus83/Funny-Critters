@@ -75,7 +75,7 @@ class FieldGrid(object):
             for y in xrange(len(pxarray[0])):
                 self.data[x].append(None)
 
-    def image_to_FieldGrid(self):
+    def image_to_grid(self):
 
         palette = []
         temp_set = set()
@@ -98,6 +98,15 @@ class FieldGrid(object):
             palette.append(pygame.Color(r, g, b))
         return self.pxarray, palette
 
+    def change_pixel(self, row, column, selected_color):
+        
+        # print(selected_color.r, selected_color.g, selected_color.b)
+        self.pxarray[row][column][0] = selected_color.r
+        self.pxarray[row][column][1] = selected_color.g
+        self.pxarray[row][column][2] = selected_color.b
+        self.image_to_grid()
+        # print("After", self.pxarray)
+
     def draw_field(self, padding=1):
 
         width, height = self.field.get_size()
@@ -117,7 +126,7 @@ class FieldGrid(object):
 
         return row, column
 
-    def change_pixel(self, row, column, color):
+    def redraw_pixel(self, row, column, color):
 
         target_cell = self.data[row][column]
         target_cell.color = color
@@ -179,7 +188,7 @@ def main(image_name, target_rect):
     clock = pygame.time.Clock()
 
     pxarray = getPixelArray(image_name, target_rect)
-
+    
     # main area with image
     grid = FieldGrid(pxarray)
     tools = ToolsGrid()
@@ -187,7 +196,7 @@ def main(image_name, target_rect):
     tumbnails = pygame.Surface((480, 195))  # thumbnails
     tumbnails.fill(pygame.Color("grey"))
 
-    image, image_palette = grid.image_to_FieldGrid()
+    image, image_palette = grid.image_to_grid()
     tools.insert_palette(image_palette)
 
     te = pygame.surfarray.make_surface(image)
@@ -210,8 +219,10 @@ def main(image_name, target_rect):
                     row, column = grid.get_idx(pos)
                     if selected_color:
                         grid.change_pixel(row, column, selected_color)
+                        # grid.redraw_pixel(row, column, selected_color)
                         selected_color = None  # Empty selected color
-                        tools_cell.draw_cell(tools.tools)
+                        grid.draw_field()
+                        # tools_cell.draw_cell(tools.tools)
 
                 elif 805 <= pos[0] <= 1280 and 0 <= pos[1] <= 600:  # in the tools area
                     tools_cell = tools.get_idx(pos)
