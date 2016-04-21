@@ -27,7 +27,7 @@ def getPixelArray(filename, rect=None):
 
     part = image.subsurface(rect)
 
-    assert(part.get_size()[0] == part.get_size()[1])
+    assert(part.get_size()[0] == part.get_size()[1])  # only square images
     return pygame.surfarray.pixels3d(part)
 
 
@@ -49,54 +49,56 @@ class ColorCell(object):
 class FieldGrid(object):
     """FieldGrid describing loading image"""
 
-    def __init__(self, step=80):
+    def __init__(self, pxarray):
         super(FieldGrid, self).__init__()
         self.data = []
+        self.step = 800 / len(pxarray[0])
+        self.pxarray = pxarray
         self.field = pygame.Surface((800, 800))
 
         width, height = self.field.get_size()
 
-        for x in xrange(width / step):
+        for x in xrange(len(pxarray[0])):
             self.data.append([])
-            for y in xrange(height / step):
-                self.data[x].append(pygame.Color("grey"))
+            for y in xrange(len(pxarray[0])):
+                self.data[x].append(None)
 
-        self.step = step
-
-    def image_to_FieldGrid(self, pxarray):
+    def image_to_FieldGrid(self):
 
         palette = []
         temp_set = set()
-        HEIGHT = WIDTH = len(pxarray[0])
+        HEIGHT = WIDTH = len(self.pxarray[0])
 
         for row in xrange(HEIGHT):
             for column in xrange(WIDTH):
-                color = pygame.Color(int(pxarray[row][column][0]),
-                                     int(pxarray[row][column][1]),
-                                     int(pxarray[row][column][2]))
-                temp_set.add((int(pxarray[row][column][0]),
-                              int(pxarray[row][column][1]),
-                              int(pxarray[row][column][2])))
+                color = pygame.Color(int(self.pxarray[row][column][0]),
+                                     int(self.pxarray[row][column][1]),
+                                     int(self.pxarray[row][column][2]))
+                temp_set.add((int(self.pxarray[row][column][0]),
+                              int(self.pxarray[row][column][1]),
+                              int(self.pxarray[row][column][2])))
 
-                self.data[row][column] = ColorCell(
-                    row, column, self.step, color)
+                cell = ColorCell(row, column, self.step, color)
+                self.data[row][column] = cell
 
         temp_list = list(temp_set)
         for r, g, b in temp_list:
             palette.append(pygame.Color(r, g, b))
-        return pxarray, palette
+        return self.pxarray, palette
 
     def draw_field(self, padding=1):
 
         width, height = self.field.get_size()
-
         for x, row in enumerate(self.data):
             for y, column in enumerate(row):
-                column.padding = padding
-                column.draw_cell(self.field)
+                try:
+                    column.padding = padding
+                    column.draw_cell(self.field)
+                except Exception as e:
+                    print(e)
 
     def get_idx(self, pos):
-        """Return cell of grid for given position."""
+        """Return cell of field grid for given position."""
 
         row, column = (int(math.ceil(pos[0] / self.step)),
                        int(math.ceil(pos[1] / self.step)))
@@ -112,6 +114,7 @@ class ToolsGrid(object):
         self.data = []
 
         self.tools = pygame.Surface((475, 600))
+        self.tools.fill(pygame.Color("grey"))
         self.step = step
         self.width, self.height = self.tools.get_size()
 
@@ -123,44 +126,33 @@ class ToolsGrid(object):
         self.step = step
 
     def insert_palette(self, palette):
+        """Save given platte."""
         for x, row in enumerate(self.data):
             for y, column in enumerate(row):
-
                 if len(palette) > 0:
-                    self.data[x][y] = ColorCell(x, y, self.step, palette.pop())
+                    self.data[x][y] = ColorCell(y, x, self.step, palette.pop())
                 else:
                     column = 0
-    
 
     def draw_tools(self, padding=1):
-
+        """Draw palette."""
         width, height = self.tools.get_size()
 
         for x, row in enumerate(self.data):
-            # print(len(row))
-            print(row)
             for y, column in enumerate(row):
-                # print(self.data[x][y])
-
-                # print(type(column), type(y))
                 if column != 0:
-                    # print(column)
+                    # print(column.rect)
                     column.padding = padding
                     column.draw_cell(self.tools)
 
-    # def draw_tools(tools, FieldGrid, step=20, padding=1):
-
-    #     for x, row in enumerate(self.data):
-    #         pass
-
-    #     width, height = tools.get_size()
-
-    #     for x, row in enumerate(FieldGrid):
-    #         for y, column in enumerate(FieldGrid[x]):
-    #             tools.fill(FieldGrid[x][y], (x * step + padding,
-    #                                          y * step + padding,
-    #                                          step - padding,
-    #                                          step - padding))
+    def get_idx(self, pos):
+        """Return cell of tools grid for given position."""
+        
+        row, column = (int(math.ceil((pos[0] - 805)/ self.step)),
+                       int(math.ceil(pos[1] / self.step)))
+        
+        if self.data[column][row] != 0:
+            return self.data[column][row]
 
 
 def main(image_name, target_rect):
@@ -172,30 +164,15 @@ def main(image_name, target_rect):
     pxarray = getPixelArray(image_name, target_rect)
 
     # main area with image
-    grid = FieldGrid(800 / len(pxarray[0]))
+    grid = FieldGrid(pxarray)
     tools = ToolsGrid()
-    # tools = pygame.Surface((475, 600))  # color palette and buttons
-    # tools.fill(pygame.Color("grey"))
-    # tools_grid = []
+
 
     tumbnails = pygame.Surface((480, 195))  # thumbnails
     tumbnails.fill(pygame.Color("grey"))
 
-    image, image_palette = grid.image_to_FieldGrid(pxarray)
+    image, image_palette = grid.image_to_FieldGrid()
     tools.insert_palette(image_palette)
-
-    # row_tool_count = column_tool_count = 0
-    # tools_grid.append([])
-    # for color in image_palette:
-    #     if row_tool_count <= 23:
-    #         tools_grid[column_tool_count].append(color)
-    #         row_tool_count += 1
-    #     elif column_tool_count <= 29:
-    #         tools_grid.append([])
-    #         column_tool_count += 1
-    #         tools_grid[column_tool_count].append(color)
-
-    # draw_tools(tools, tools_grid)
 
     te = pygame.surfarray.make_surface(image)
     tumbnails.blit(te, (10, 10))
@@ -204,6 +181,7 @@ def main(image_name, target_rect):
     grid.draw_field()
 
     done = False
+    field_cell = None
 
     while not done:  # main loop
         for event in pygame.event.get():
@@ -213,12 +191,14 @@ def main(image_name, target_rect):
             elif event.type == MOUSEBUTTONDOWN:
                 pos = pygame.mouse.get_pos()
                 if 0 <= pos[0] <= 800 and 0 <= pos[1] <= 800:  # in the field area
-                    target_cell = grid.get_idx(pos)
+                    field_cell = grid.get_idx(pos)
+                    print(field_cell.color)
                     # target_cell.color = pygame.Color(255, 255, 255)
                     # target_cell.draw_cell(grid.field)
                 elif 805 <= pos[0] <= 1280 and 0 <= pos[1] <= 600:
-                    print("Tools")
-
+                    tools_cell = tools.get_idx(pos)
+                    if tools_cell:
+                        print(tools_cell.color)
             elif event.type == pygame.QUIT:
                 done = True
 
