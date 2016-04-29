@@ -9,8 +9,8 @@ import sys
 from pygame.locals import *
 
 
-def getPixelArray(filename, rect=None):
-
+def getImage(filename):
+    """Get image for dissolving."""
     sys.path.append("../prj.core")
     try:
         from utils import load_png
@@ -24,6 +24,19 @@ def getPixelArray(filename, rect=None):
     except pygame.error, message:
         print "Cannot load image:", filename
         raise SystemExit, message
+
+    return image
+
+
+def getPixelArray(image, rect=None):
+    """Get pixel array of given rect."""
+
+    if not rect:
+        width, height = image.get_size()
+        dimension = min([width, height])
+        print(dimension)
+
+        rect = pygame.Rect(0, 0, dimension, dimension)
 
     part = image.subsurface(rect)
 
@@ -99,7 +112,7 @@ class FieldGrid(object):
         return self.pxarray, palette
 
     def change_pixel(self, row, column, selected_color):
-        
+
         # print(selected_color.r, selected_color.g, selected_color.b)
         self.pxarray[row][column][0] = selected_color.r
         self.pxarray[row][column][1] = selected_color.g
@@ -187,8 +200,10 @@ def main(image_name, target_rect):
     screen = pygame.display.set_mode(size, 0)
     clock = pygame.time.Clock()
 
-    pxarray = getPixelArray(image_name, target_rect)
-    
+    image = getImage(image_name)
+    pxarray = getPixelArray(image)
+    # pxarray = getPixelArray(image, target_rect)
+
     # main area with image
     grid = FieldGrid(pxarray)
     tools = ToolsGrid()
