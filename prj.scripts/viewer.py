@@ -24,8 +24,8 @@ def getImage(filename):
     except pygame.error, message:
         print "Cannot load image:", filename
         raise SystemExit, message
-
-    return image
+    else:
+        return image
 
 
 def getPixelArray(image, rect=None):
@@ -34,7 +34,6 @@ def getPixelArray(image, rect=None):
     if not rect:
         width, height = image.get_size()
         dimension = min([width, height])
-        print(dimension)
 
         rect = pygame.Rect(0, 0, dimension, dimension)
 
@@ -201,7 +200,7 @@ def main(image_name, target_rect):
     clock = pygame.time.Clock()
 
     image = getImage(image_name)
-    pxarray = getPixelArray(image)
+    pxarray = getPixelArray(image, target_rect)
     # pxarray = getPixelArray(image, target_rect)
 
     # main area with image
@@ -228,7 +227,7 @@ def main(image_name, target_rect):
             if event.type == KEYDOWN:
                 if event.key == K_ESCAPE:
                     done = True
-            elif event.type == MOUSEBUTTONDOWN:
+            elif event.type == MOUSEBUTTONDOWN and pygame.mouse.get_pressed()[1]:
                 pos = pygame.mouse.get_pos()
                 if 0 <= pos[0] <= 800 and 0 <= pos[1] <= 800:  # in the field area
                     row, column = grid.get_idx(pos)

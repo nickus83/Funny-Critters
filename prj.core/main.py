@@ -91,13 +91,13 @@ class Sheep(Animal):
     def update(self, pressed_keys):
 
         if pressed_keys[K_DOWN]:
-            self.move_down()
+            self.move_down(2)
         elif pressed_keys[K_LEFT]:
-            self.move_left()
+            self.move_left(2)
         elif pressed_keys[K_RIGHT]:
-            self.move_right()
+            self.move_right(2)
         elif pressed_keys[K_UP]:
-            self.move_up()
+            self.move_up(2)
 
         if self.rect.left < 0:
             self.rect.left = 0
@@ -269,7 +269,7 @@ if __name__ == '__main__':
     items = pygame.sprite.Group()
     grass = pygame.sprite.Group()
 
-    cattle = Pig(animal_images)    
+    cattle = Sheep(animal_images)    
     animals.add(cattle)
 
     wolf = Wolf(animal_images)
