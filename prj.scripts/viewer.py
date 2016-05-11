@@ -36,9 +36,9 @@ def getPixelArray(image, rect=None):
         dimension = min([width, height])
 
         rect = pygame.Rect(0, 0, dimension, dimension)
-    
+
     part = image.subsurface(rect)
-    
+
     assert(part.get_size()[0] == part.get_size()[1])  # only square images
     return pygame.surfarray.pixels3d(part)
 
@@ -70,6 +70,24 @@ class ColorCell(object):
             self.color, self.rect.inflate(-self.padding, -self.padding))
 
 
+class Button(object):
+    """Button for tools"""
+
+    def __init__(self, rect, padding=1):
+        super(Button, self).__init__()
+        self.rect = rect
+
+        self.color = pygame.Color(random.randrange(0, 255),
+                                  random.randrange(0, 255),
+                                  random.randrange(0, 255))
+        self.padding = padding
+
+    def draw_button(self, surface, background_color=None):
+        """Draw button with padding"""
+        surface.fill(
+            self.color, self.rect.inflate(-self.padding, -self.padding))
+
+
 class FieldGrid(object):
     """FieldGrid describing loading image"""
 
@@ -92,8 +110,6 @@ class FieldGrid(object):
             self.data.append([])
             for y in xrange(len(self.pxarray[0])):
                 self.data[x].append(None)
-
-
 
     def image_to_grid(self):
 
@@ -120,12 +136,10 @@ class FieldGrid(object):
 
     def change_pixel(self, row, column, selected_color):
 
-        # print(selected_color.r, selected_color.g, selected_color.b)
         self.pxarray[row][column][0] = selected_color.r
         self.pxarray[row][column][1] = selected_color.g
         self.pxarray[row][column][2] = selected_color.b
         self.image_to_grid()
-        # print("After", self.pxarray)
 
     def draw_field(self, padding=1):
 
@@ -137,7 +151,6 @@ class FieldGrid(object):
                     column.draw_cell(self.field)
                 except Exception as e:
                     print(e)
-                    import pdb;pdb.set_trace()
 
     def get_idx(self, pos):
         """Return cell of field grid for given position."""
@@ -160,16 +173,20 @@ class ToolsGrid(object):
     def __init__(self, step=20):
         super(ToolsGrid, self).__init__()
         self.data = []
+        self.buttons = []
 
         self.tools = pygame.Surface((475, 600))
         self.tools.fill(pygame.Color("grey"))
         self.step = step
         self.width, self.height = self.tools.get_size()
 
-        for x in xrange(20):
+        for x in xrange(29):  # max 667 colors
             self.data.append([])
             for y in xrange(23):
                 self.data[x].append(0)
+
+        for x in xrange(11):  # 11 buttons
+            self.buttons.append(0)
 
         self.step = step
 
@@ -180,7 +197,11 @@ class ToolsGrid(object):
                 if len(palette) > 0:
                     self.data[x][y] = ColorCell(y, x, self.step, palette.pop())
                 else:
-                    column = 0
+                    self.data[x][y] = 0
+
+        for x, column in enumerate(self.buttons):
+            self.buttons[x] = Button(
+                (pygame.Rect(0 + (20 * x * 2), 580, 40, 20)))
 
     def draw_tools(self, padding=1):
         """Draw palette."""
@@ -192,7 +213,11 @@ class ToolsGrid(object):
                     column.padding = padding
                     column.draw_cell(self.tools)
 
-    def get_idx(self, pos):
+        for x, column in enumerate(self.buttons):
+            if column != 0:
+                column.draw_button(self.tools)
+
+    def get_cell(self, pos):
         """Return cell of tools grid for given position."""
 
         row, column = (int(math.ceil((pos[0] - 805) / self.step)),
@@ -200,6 +225,13 @@ class ToolsGrid(object):
 
         if self.data[column][row] != 0:
             return self.data[column][row]
+
+    def get_button(self, (x, y)):
+        """Return button on given coordinates"""
+
+        for button in self.buttons:
+            if button.rect.collidepoint(x - 805, y):
+                return button
 
 
 def main(image_name, target_rect):
@@ -236,40 +268,46 @@ def main(image_name, target_rect):
                 if event.key == K_ESCAPE:
                     done = True
             elif event.type == MOUSEBUTTONDOWN:
-                pos = pygame.mouse.get_pos()
+                x, y = pygame.mouse.get_pos()
                 if event.button == 1:  # left mouse button
-                    if 0 <= pos[0] <= 800 and 0 <= pos[1] <= 800:  # in the field area
-                        row, column = grid.get_idx(pos)
+                    if 0 <= x <= 800 and 0 <= y <= 800:  # in the field area
+                        row, column = grid.get_idx((x, y))
                         if selected_color:
                             grid.change_pixel(row, column, selected_color)
-                            # grid.redraw_pixel(row, column, selected_color)
+
                             selected_color = None  # Empty selected color
                             grid.draw_field()
-                            # tools_cell.draw_cell(tools.tools)
 
-                    elif 805 <= pos[0] <= 1280 and 0 <= pos[1] <= 600:  # in the tools area
-                        tools_cell = tools.get_idx(pos)
+                    elif 805 <= x <= 1280 and 0 <= y < 580:  # in the tools area
+                        tools_cell = tools.get_cell((x, y))
+
                         if tools_cell:
                             selected_color = tools_cell.color
                             tools_cell.draw_cell(
                                 tools.tools, pygame.Color("red"))
-                elif event.button == 4 or event.button == 5:  # scroll up
+                    elif 805 <= x <= 1280 and 580 <= y <= 600:  # in the buttons area
+                        button_pressed = tools.get_button((x, y))
+                        if button_pressed:
+                            print(button_pressed.color)
+
+                elif event.button == 4 or event.button == 5:
                     if pygame.key.get_pressed() == K_LCTRL:
                         rm = 5
-                    else: 
-                        rm = 1 # resize multiplier
+                    else:
+                        rm = 1  # resize multiplier
 
-                    if event.button == 4: # scroll up
+                    if event.button == 4:  # scroll up
                         target_rect = target_rect.inflate(-rm, -rm)
-                    elif event.button == 5: # scroll down
+                    elif event.button == 5:  # scroll down
                         target_rect = target_rect.inflate(rm, rm)
 
                     grid.pxarray = getPixelArray(image, target_rect)
                     screen.fill(pygame.Color("black"))
                     grid.update_data()
                     grid.image_to_grid()
-                    grid.draw_field() 
-                
+                    grid.draw_field()
+                elif event.button == 3:
+                    print(x, y)
 
             elif event.type == pygame.QUIT:
                 done = True
