@@ -36,9 +36,9 @@ def getPixelArray(image, rect=None):
         dimension = min([width, height])
 
         rect = pygame.Rect(0, 0, dimension, dimension)
-
+    
     part = image.subsurface(rect)
-
+    
     assert(part.get_size()[0] == part.get_size()[1])  # only square images
     return pygame.surfarray.pixels3d(part)
 
@@ -76,16 +76,24 @@ class FieldGrid(object):
     def __init__(self, pxarray):
         super(FieldGrid, self).__init__()
         self.data = []
-        self.step = 800 / len(pxarray[0])
-        self.pxarray = pxarray
         self.field = pygame.Surface((800, 800))
+        self.pxarray = pxarray
+
+        self.update_data()
+
+    def update_data(self):
+
+        self.step = 800 / len(self.pxarray[0])
 
         width, height = self.field.get_size()
 
-        for x in xrange(len(pxarray[0])):
+        self.data = []
+        for x in xrange(len(self.pxarray[0])):
             self.data.append([])
-            for y in xrange(len(pxarray[0])):
+            for y in xrange(len(self.pxarray[0])):
                 self.data[x].append(None)
+
+
 
     def image_to_grid(self):
 
@@ -129,6 +137,7 @@ class FieldGrid(object):
                     column.draw_cell(self.field)
                 except Exception as e:
                     print(e)
+                    import pdb;pdb.set_trace()
 
     def get_idx(self, pos):
         """Return cell of field grid for given position."""
@@ -201,7 +210,6 @@ def main(image_name, target_rect):
 
     image = getImage(image_name)
     pxarray = getPixelArray(image, target_rect)
-    # pxarray = getPixelArray(image, target_rect)
 
     # main area with image
     grid = FieldGrid(pxarray)
@@ -210,10 +218,10 @@ def main(image_name, target_rect):
     tumbnails = pygame.Surface((480, 195))  # thumbnails
     tumbnails.fill(pygame.Color("grey"))
 
-    image, image_palette = grid.image_to_grid()
+    image_pixel, image_palette = grid.image_to_grid()
     tools.insert_palette(image_palette)
 
-    te = pygame.surfarray.make_surface(image)
+    te = pygame.surfarray.make_surface(image_pixel)
     tumbnails.blit(te, (10, 10))
 
     tools.draw_tools()
@@ -227,22 +235,41 @@ def main(image_name, target_rect):
             if event.type == KEYDOWN:
                 if event.key == K_ESCAPE:
                     done = True
-            elif event.type == MOUSEBUTTONDOWN and pygame.mouse.get_pressed()[1]:
+            elif event.type == MOUSEBUTTONDOWN:
                 pos = pygame.mouse.get_pos()
-                if 0 <= pos[0] <= 800 and 0 <= pos[1] <= 800:  # in the field area
-                    row, column = grid.get_idx(pos)
-                    if selected_color:
-                        grid.change_pixel(row, column, selected_color)
-                        # grid.redraw_pixel(row, column, selected_color)
-                        selected_color = None  # Empty selected color
-                        grid.draw_field()
-                        # tools_cell.draw_cell(tools.tools)
+                if event.button == 1:  # left mouse button
+                    if 0 <= pos[0] <= 800 and 0 <= pos[1] <= 800:  # in the field area
+                        row, column = grid.get_idx(pos)
+                        if selected_color:
+                            grid.change_pixel(row, column, selected_color)
+                            # grid.redraw_pixel(row, column, selected_color)
+                            selected_color = None  # Empty selected color
+                            grid.draw_field()
+                            # tools_cell.draw_cell(tools.tools)
 
-                elif 805 <= pos[0] <= 1280 and 0 <= pos[1] <= 600:  # in the tools area
-                    tools_cell = tools.get_idx(pos)
-                    if tools_cell:
-                        selected_color = tools_cell.color
-                        tools_cell.draw_cell(tools.tools, pygame.Color("red"))
+                    elif 805 <= pos[0] <= 1280 and 0 <= pos[1] <= 600:  # in the tools area
+                        tools_cell = tools.get_idx(pos)
+                        if tools_cell:
+                            selected_color = tools_cell.color
+                            tools_cell.draw_cell(
+                                tools.tools, pygame.Color("red"))
+                elif event.button == 4 or event.button == 5:  # scroll up
+                    if pygame.key.get_pressed() == K_LCTRL:
+                        rm = 5
+                    else: 
+                        rm = 1 # resize multiplier
+
+                    if event.button == 4: # scroll up
+                        target_rect = target_rect.inflate(-rm, -rm)
+                    elif event.button == 5: # scroll down
+                        target_rect = target_rect.inflate(rm, rm)
+
+                    grid.pxarray = getPixelArray(image, target_rect)
+                    screen.fill(pygame.Color("black"))
+                    grid.update_data()
+                    grid.image_to_grid()
+                    grid.draw_field() 
+                
 
             elif event.type == pygame.QUIT:
                 done = True
