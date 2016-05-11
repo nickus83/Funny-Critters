@@ -73,7 +73,7 @@ class ColorCell(object):
 class Button(object):
     """Button for tools"""
 
-    def __init__(self, rect, padding=1):
+    def __init__(self, rect, text, padding=1):
         super(Button, self).__init__()
         self.rect = rect
 
@@ -81,11 +81,19 @@ class Button(object):
                                   random.randrange(0, 255),
                                   random.randrange(0, 255))
         self.padding = padding
+        self.text = text 
+
 
     def draw_button(self, surface, background_color=None):
         """Draw button with padding"""
         surface.fill(
             self.color, self.rect.inflate(-self.padding, -self.padding))
+
+        font = pygame.font.Font(None, 15)        
+        surface.blit(font.render(self.text, True, pygame.Color("black")),
+                                (self.rect.x, self.rect.y))
+
+
 
 
 class FieldGrid(object):
@@ -191,7 +199,7 @@ class ToolsGrid(object):
         self.step = step
 
     def insert_palette(self, palette):
-        """Save given platte."""
+        """Save given palatte."""
         for x, row in enumerate(self.data):
             for y, column in enumerate(row):
                 if len(palette) > 0:
@@ -199,9 +207,9 @@ class ToolsGrid(object):
                 else:
                     self.data[x][y] = 0
 
-        for x, column in enumerate(self.buttons):
+        for x, column in enumerate(self.buttons): # insert buttons
             self.buttons[x] = Button(
-                (pygame.Rect(0 + (20 * x * 2), 580, 40, 20)))
+                (pygame.Rect(0 + (20 * x * 2), 580, 40, 20)), "Resize")
 
     def draw_tools(self, padding=1):
         """Draw palette."""
@@ -239,6 +247,7 @@ def main(image_name, target_rect):
     FPS = 10
     screen = pygame.display.set_mode(size, 0)
     clock = pygame.time.Clock()
+    pygame.font.init()
 
     image = getImage(image_name)
     pxarray = getPixelArray(image, target_rect)
