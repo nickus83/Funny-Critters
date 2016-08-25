@@ -276,6 +276,19 @@ def main(image_name, target_rect):
             if event.type == KEYDOWN:
                 if event.key == K_ESCAPE:
                     done = True
+                elif event.key == K_UP:
+                    try:
+                        target_rect = target_rect.move(0, -1)
+                    except Exception as e:
+                        print(e)
+
+                elif event.key == K_DOWN:
+                    target_rect = target_rect.move(0, 1)
+                elif event.key == K_LEFT:
+                    target_rect = target_rect.move(-1, 0)
+                elif event.key == K_RIGHT:
+                    target_rect = target_rect.move(1, 0)
+
             elif event.type == MOUSEBUTTONDOWN:
                 x, y = pygame.mouse.get_pos()
                 if event.button == 1:  # left mouse button
@@ -310,16 +323,19 @@ def main(image_name, target_rect):
                     elif event.button == 5:  # scroll down
                         target_rect = target_rect.inflate(rm, rm)
 
-                    grid.pxarray = getPixelArray(image, target_rect)
-                    screen.fill(pygame.Color("black"))
-                    grid.update_data()
-                    grid.image_to_grid()
-                    grid.draw_field()
                 elif event.button == 3:
                     print(x, y)
 
             elif event.type == pygame.QUIT:
                 done = True
+
+            grid.pxarray = getPixelArray(image, target_rect)
+            screen.fill(pygame.Color("black"))
+            grid.update_data()
+            new_image_pixel, _ = grid.image_to_grid()
+            grid.draw_field()
+            new_te = pygame.surfarray.make_surface(new_image_pixel)
+            tumbnails.blit(new_te, (10, 10))
 
         screen.blit(grid.field, (0, 0))
         screen.blit(tools.tools, (805, 0))
