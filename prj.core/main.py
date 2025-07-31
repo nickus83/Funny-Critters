@@ -2,13 +2,20 @@
 import random
 import pygame
 import math  # Добавлено: используется math.ceil
+import os
+import sys
 from pygame.locals import *
+
+# Убедимся, что мы в корне проекта
+if not os.path.exists('prj.core') or not os.path.exists('prj.data'):
+    print("Ошибка: Запускайте скрипт из корневой директории проекта!")
+    print("Текущая директория:", os.getcwd())
+    sys.exit(1)
 
 if not pygame.font:
     print("Warning! Fonts disabled")
 if not pygame.mixer:
     print("Warning! Sounds disabled")
-
 
 class Animal(pygame.sprite.Sprite):
     """Basic animal that can move."""

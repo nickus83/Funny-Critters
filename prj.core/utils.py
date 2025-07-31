@@ -5,7 +5,7 @@ from pygame.locals import *
 
 def load_image(name, colorkey=None):
     """Load an image with optional colorkey for transparency."""
-    fullname = osp.join('..', 'prj.data', 'images', name)
+    fullname = osp.join('prj.data', 'images', name)
 
     if not osp.exists(fullname):
         print(f"Cannot load image: {fullname} (File not found)")
@@ -37,7 +37,7 @@ def load_sound(name):
     if not pygame.mixer or not pygame.mixer.get_init():
         return NoneSound()
 
-    fullname = osp.join('..', 'prj.data', name)
+    fullname = osp.join('prj.data', name)
 
     if not osp.exists(fullname):
         print(f"Cannot load sound: {fullname} (File not found)")
@@ -54,7 +54,7 @@ def load_sound(name):
 
 def load_png(name, colorkey=None):
     """Load a PNG image with alpha channel."""
-    fullname = osp.join('..', 'prj.data', 'images', name)
+    fullname = osp.join('prj.data', 'images', name)
 
     if not osp.exists(fullname):
         print(f"Cannot load image: {fullname} (File not found)")
