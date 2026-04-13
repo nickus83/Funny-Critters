@@ -21,6 +21,8 @@ if not pygame.mixer:
 STATE_MENU = 0
 STATE_PLAYING = 1
 STATE_SETTINGS = 2
+STATE_MODE_SELECT = 3  # Выбор режима (одиночная/для двоих)
+STATE_CRITTER_SELECT = 4  # Выбор типа животного
 
 
 class Button(pygame.sprite.Sprite):
@@ -148,6 +150,108 @@ class SettingsMenu:
     def handle_click(self, mouse_pos, mouse_pressed):
         """Обрабатывает клик по кнопке 'Назад'."""
         if self.back_button.is_clicked(mouse_pos, mouse_pressed):
+            return "back"
+        return None
+
+
+class ModeSelectMenu:
+    """Меню выбора режима игры (одиночная/для двоих)."""
+
+    def __init__(self, screen_width, screen_height):
+        self.buttons = pygame.sprite.Group()
+        
+        # Создаем кнопки
+        button_width = 300
+        button_height = 60
+        center_x = screen_width // 2
+        start_y = screen_height // 2 - 50
+        
+        self.single_player_button = Button("Одиночная игра", center_x, start_y, button_width, button_height)
+        self.two_player_button = Button("Играть вдвоем", center_x, start_y + 80, button_width, button_height)
+        self.back_button = Button("Назад", center_x, start_y + 160, button_width, button_height)
+        
+        self.buttons.add(self.single_player_button)
+        self.buttons.add(self.two_player_button)
+        self.buttons.add(self.back_button)
+        
+        # Заголовок
+        font = pygame.font.Font(None, 72)
+        self.title_text = font.render("Выберите режим", True, (255, 255, 255))
+        self.title_rect = self.title_text.get_rect(center=(screen_width // 2, screen_height // 2 - 150))
+
+    def draw(self, screen, background):
+        """Отрисовывает меню выбора режима."""
+        screen.blit(background, (0, 0))
+        
+        # Рисуем заголовок
+        screen.blit(self.title_text, self.title_rect)
+        
+        # Обновляем и рисуем кнопки
+        mouse_pos = pygame.mouse.get_pos()
+        for button in self.buttons:
+            button.update(mouse_pos)
+            screen.blit(button.image, button.rect)
+
+    def handle_click(self, mouse_pos, mouse_pressed):
+        """Обрабатывает клик по кнопкам. Возвращает действие."""
+        if self.single_player_button.is_clicked(mouse_pos, mouse_pressed):
+            return "single_player"
+        elif self.two_player_button.is_clicked(mouse_pos, mouse_pressed):
+            return "two_player"
+        elif self.back_button.is_clicked(mouse_pos, mouse_pressed):
+            return "back"
+        return None
+
+
+class CritterSelectMenu:
+    """Меню выбора типа животного для игрока."""
+
+    def __init__(self, screen_width, screen_height):
+        self.buttons = pygame.sprite.Group()
+        
+        # Создаем кнопки с названиями животных
+        button_width = 300
+        button_height = 60
+        center_x = screen_width // 2
+        start_y = screen_height // 2 - 100
+        
+        self.sheep_button = Button("Овца (Sheep)", center_x, start_y, button_width, button_height)
+        self.pig_button = Button("Свинья (Pig)", center_x, start_y + 80, button_width, button_height)
+        self.goat_button = Button("Коза (Goat)", center_x, start_y + 160, button_width, button_height)
+        self.back_button = Button("Назад", center_x, start_y + 240, button_width, button_height)
+        
+        self.buttons.add(self.sheep_button)
+        self.buttons.add(self.pig_button)
+        self.buttons.add(self.goat_button)
+        self.buttons.add(self.back_button)
+        
+        # Заголовок
+        font = pygame.font.Font(None, 72)
+        self.title_text = font.render("Выберите животное", True, (255, 255, 255))
+        self.title_rect = self.title_text.get_rect(center=(screen_width // 2, screen_height // 2 - 200))
+
+    def draw(self, screen, background):
+        """Отрисовывает меню выбора животного."""
+        screen.blit(background, (0, 0))
+        
+        # Рисуем заголовок
+        screen.blit(self.title_text, self.title_rect)
+        
+        # Обновляем и рисуем кнопки
+        mouse_pos = pygame.mouse.get_pos()
+        for button in self.buttons:
+            button.update(mouse_pos)
+            screen.blit(button.image, button.rect)
+
+    def handle_click(self, mouse_pos, mouse_pressed):
+        """Обрабатывает клик по кнопкам. Возвращает действие."""
+        if self.sheep_button.is_clicked(mouse_pos, mouse_pressed):
+            return "sheep"
+        elif self.pig_button.is_clicked(mouse_pos, mouse_pressed):
+            return "pig"
+        elif self.goat_button.is_clicked(mouse_pos, mouse_pressed):
+            return "goat"
+        elif self.back_button.is_clicked(mouse_pos, mouse_pressed):
             return "back"
         return None
 
@@ -426,11 +530,9 @@ if __name__ == '__main__':
     items = pygame.sprite.Group()
     grass = pygame.sprite.Group()
 
-    cattle = Sheep(animal_images)
-    animals.add(cattle)
-
-    wolf = Wolf(animal_images)
-    animals.add(wolf)
+    # Животные будут созданы после выбора типа critter
+    cattle = None
+    wolf = None
 
     new_item = Item()
     items.add(new_item)
@@ -442,9 +544,15 @@ if __name__ == '__main__':
     # Создаем меню
     main_menu = Menu(width, height)
     settings_menu = SettingsMenu(width, height)
+    mode_select_menu = ModeSelectMenu(width, height)
+    critter_select_menu = CritterSelectMenu(width, height)
     
     # Текущее состояние игры
     game_state = STATE_MENU
+    
+    # Переменные для выбора режима и животного
+    selected_critter_type = "sheep"  # По умолчанию овца
+    game_initialized = False  # Флаг, что игра инициализирована
 
     # Главный цикл
     while not done:
@@ -468,7 +576,7 @@ if __name__ == '__main__':
                 if game_state == STATE_MENU:
                     action = main_menu.handle_click(mouse_pos, True)
                     if action == "start":
-                        game_state = STATE_PLAYING
+                        game_state = STATE_MODE_SELECT
                     elif action == "settings":
                         game_state = STATE_SETTINGS
                     elif action == "quit":
@@ -477,26 +585,65 @@ if __name__ == '__main__':
                     action = settings_menu.handle_click(mouse_pos, True)
                     if action == "back":
                         game_state = STATE_MENU
+                elif game_state == STATE_MODE_SELECT:
+                    action = mode_select_menu.handle_click(mouse_pos, True)
+                    if action == "single_player":
+                        # Одиночная игра пока не реализована - показываем сообщение и возвращаемся
+                        print("Одиночная игра пока не реализована. Выберите 'Играть вдвоем'.")
+                    elif action == "two_player":
+                        game_state = STATE_CRITTER_SELECT
+                    elif action == "back":
+                        game_state = STATE_MENU
+                elif game_state == STATE_CRITTER_SELECT:
+                    action = critter_select_menu.handle_click(mouse_pos, True)
+                    if action in ("sheep", "pig", "goat"):
+                        selected_critter_type = action
+                        # Создаем животных на основе выбора
+                        animals.empty()  # Очищаем группу
+                        
+                        # Создаем cattle на основе выбранного типа
+                        if selected_critter_type == "sheep":
+                            cattle = Sheep(animal_images)
+                        elif selected_critter_type == "pig":
+                            cattle = Pig(animal_images)
+                        elif selected_critter_type == "goat":
+                            cattle = Goat(animal_images)
+                        
+                        animals.add(cattle)
+                        
+                        # Создаем волка
+                        wolf = Wolf(animal_images)
+                        animals.add(wolf)
+                        
+                        game_initialized = True
+                        game_state = STATE_PLAYING
+                    elif action == "back":
+                        game_state = STATE_MODE_SELECT
 
         # Отрисовка в зависимости от состояния
         if game_state == STATE_MENU:
             main_menu.draw(screen, background)
         elif game_state == STATE_SETTINGS:
             settings_menu.draw(screen, background)
+        elif game_state == STATE_MODE_SELECT:
+            mode_select_menu.draw(screen, background)
+        elif game_state == STATE_CRITTER_SELECT:
+            critter_select_menu.draw(screen, background)
         elif game_state == STATE_PLAYING:
-            pressed_keys = pygame.key.get_pressed()
-            cattle.update(pressed_keys)
-            wolf.update(pressed_keys)
+            if game_initialized and cattle is not None and wolf is not None:
+                pressed_keys = pygame.key.get_pressed()
+                cattle.update(pressed_keys)
+                wolf.update(pressed_keys)
 
-            # Проверка столкновения овцы и волка
-            if pygame.sprite.collide_mask(cattle, wolf):
-                cattle.kill()  # Овца исчезает
+                # Проверка столкновения овцы и волка
+                if pygame.sprite.collide_mask(cattle, wolf):
+                    cattle.kill()  # Овца исчезает
 
-            # Отрисовка
-            screen.blit(background, (0, 0))
-            grass.draw(screen)
-            items.draw(screen)
-            animals.draw(screen)
+                # Отрисовка
+                screen.blit(background, (0, 0))
+                grass.draw(screen)
+                items.draw(screen)
+                animals.draw(screen)
 
         pygame.display.update()
         clock.tick(FPS)

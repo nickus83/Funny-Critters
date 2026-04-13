@@ -1,7 +1,1 @@
-```
-# Compiled Python files
-*.pyc
-__pycache__/
-
-# Original rules preserved
-```
+Nothing needs to be added to .gitignore since only a source file (`prj.core/main.py`) was modified and no build artifacts, dependencies, or temporary files were detected in the changes.
