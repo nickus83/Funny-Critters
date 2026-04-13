@@ -17,6 +17,140 @@ if not pygame.font:
 if not pygame.mixer:
     print("Warning! Sounds disabled")
 
+# Состояния игры
+STATE_MENU = 0
+STATE_PLAYING = 1
+STATE_SETTINGS = 2
+
+
+class Button(pygame.sprite.Sprite):
+    """Кнопка для меню."""
+
+    def __init__(self, text, x, y, width, height, color=(100, 100, 100), hover_color=(150, 150, 150)):
+        super().__init__()
+        self.text = text
+        self.width = width
+        self.height = height
+        self.color = color
+        self.hover_color = hover_color
+        self.current_color = color
+        
+        # Создаем поверхность кнопки
+        self.image = pygame.Surface((width, height))
+        self.image.fill(self.color)
+        self.rect = self.image.get_rect()
+        self.rect.center = (x, y)
+        
+        # Рендерим текст
+        font = pygame.font.Font(None, 36)
+        text_surface = font.render(text, True, (255, 255, 255))
+        text_rect = text_surface.get_rect(center=(width // 2, height // 2))
+        self.image.blit(text_surface, text_rect)
+        
+        self.original_image = self.image.copy()
+        self.is_hovered = False
+
+    def update(self, mouse_pos):
+        """Проверяет, находится ли курсор над кнопкой."""
+        if self.rect.collidepoint(mouse_pos):
+            if not self.is_hovered:
+                self.is_hovered = True
+                self.image.fill(self.hover_color)
+                font = pygame.font.Font(None, 36)
+                text_surface = font.render(self.text, True, (255, 255, 255))
+                text_rect = text_surface.get_rect(center=(self.width // 2, self.height // 2))
+                self.image.blit(text_surface, text_rect)
+        else:
+            if self.is_hovered:
+                self.is_hovered = False
+                self.image = self.original_image.copy()
+
+    def is_clicked(self, mouse_pos, mouse_pressed):
+        """Проверяет, была ли кнопка нажата."""
+        return self.rect.collidepoint(mouse_pos) and mouse_pressed
+
+
+class Menu:
+    """Главное меню игры."""
+
+    def __init__(self, screen_width, screen_height):
+        self.buttons = pygame.sprite.Group()
+        
+        # Создаем кнопки
+        button_width = 300
+        button_height = 60
+        center_x = screen_width // 2
+        start_y = screen_height // 2 - 100
+        
+        self.start_button = Button("Начать", center_x, start_y, button_width, button_height)
+        self.settings_button = Button("Параметры", center_x, start_y + 80, button_width, button_height)
+        self.quit_button = Button("Выйти", center_x, start_y + 160, button_width, button_height)
+        
+        self.buttons.add(self.start_button)
+        self.buttons.add(self.settings_button)
+        self.buttons.add(self.quit_button)
+        
+        # Заголовок
+        font = pygame.font.Font(None, 72)
+        self.title_text = font.render("Игра с животными", True, (255, 255, 255))
+        self.title_rect = self.title_text.get_rect(center=(screen_width // 2, screen_height // 2 - 200))
+
+    def draw(self, screen, background):
+        """Отрисовывает меню."""
+        screen.blit(background, (0, 0))
+        
+        # Рисуем заголовок
+        screen.blit(self.title_text, self.title_rect)
+        
+        # Обновляем и рисуем кнопки
+        mouse_pos = pygame.mouse.get_pos()
+        for button in self.buttons:
+            button.update(mouse_pos)
+            screen.blit(button.image, button.rect)
+
+    def handle_click(self, mouse_pos, mouse_pressed):
+        """Обрабатывает клик по кнопкам. Возвращает действие."""
+        if self.start_button.is_clicked(mouse_pos, mouse_pressed):
+            return "start"
+        elif self.settings_button.is_clicked(mouse_pos, mouse_pressed):
+            return "settings"
+        elif self.quit_button.is_clicked(mouse_pos, mouse_pressed):
+            return "quit"
+        return None
+
+
+class SettingsMenu:
+    """Меню параметров."""
+
+    def __init__(self, screen_width, screen_height):
+        self.back_button = Button("Назад", screen_width // 2, screen_height // 2 + 150, 200, 50)
+        
+        # Заголовок
+        font = pygame.font.Font(None, 72)
+        self.title_text = font.render("Параметры", True, (255, 255, 255))
+        self.title_rect = self.title_text.get_rect(center=(screen_width // 2, screen_height // 2 - 100))
+        
+        # Пример параметра (можно расширить)
+        font_small = pygame.font.Font(None, 36)
+        self.info_text = font_small.render("Настройки пока не реализованы", True, (200, 200, 200))
+        self.info_rect = self.info_text.get_rect(center=(screen_width // 2, screen_height // 2))
+
+    def draw(self, screen, background):
+        """Отрисовывает меню параметров."""
+        screen.blit(background, (0, 0))
+        screen.blit(self.title_text, self.title_rect)
+        screen.blit(self.info_text, self.info_rect)
+        
+        mouse_pos = pygame.mouse.get_pos()
+        self.back_button.update(mouse_pos)
+        screen.blit(self.back_button.image, self.back_button.rect)
+
+    def handle_click(self, mouse_pos, mouse_pressed):
+        """Обрабатывает клик по кнопке 'Назад'."""
+        if self.back_button.is_clicked(mouse_pos, mouse_pressed):
+            return "back"
+        return None
+
 class Animal(pygame.sprite.Sprite):
     """Basic animal that can move."""
 
@@ -305,31 +439,64 @@ if __name__ == '__main__':
         new_grass = Grass()
         grass.add(new_grass)
 
+    # Создаем меню
+    main_menu = Menu(width, height)
+    settings_menu = SettingsMenu(width, height)
+    
+    # Текущее состояние игры
+    game_state = STATE_MENU
+
     # Главный цикл
     while not done:
+        mouse_pos = pygame.mouse.get_pos()
+        mouse_pressed = pygame.mouse.get_pressed()[0]  # Левая кнопка мыши
+        
         for event in pygame.event.get():
             if event.type == KEYDOWN:
                 if event.key == K_ESCAPE:
-                    done = True
-                elif event.key == K_p:
+                    if game_state == STATE_PLAYING:
+                        game_state = STATE_MENU
+                    else:
+                        done = True
+                elif event.key == K_p and game_state == STATE_PLAYING:
                     new_item = Item()
                     items.add(new_item)
             elif event.type == pygame.QUIT:
                 done = True
+            elif event.type == MOUSEBUTTONDOWN and event.button == 1:
+                # Обработка кликов мышью
+                if game_state == STATE_MENU:
+                    action = main_menu.handle_click(mouse_pos, True)
+                    if action == "start":
+                        game_state = STATE_PLAYING
+                    elif action == "settings":
+                        game_state = STATE_SETTINGS
+                    elif action == "quit":
+                        done = True
+                elif game_state == STATE_SETTINGS:
+                    action = settings_menu.handle_click(mouse_pos, True)
+                    if action == "back":
+                        game_state = STATE_MENU
 
-        pressed_keys = pygame.key.get_pressed()
-        cattle.update(pressed_keys)
-        wolf.update(pressed_keys)
+        # Отрисовка в зависимости от состояния
+        if game_state == STATE_MENU:
+            main_menu.draw(screen, background)
+        elif game_state == STATE_SETTINGS:
+            settings_menu.draw(screen, background)
+        elif game_state == STATE_PLAYING:
+            pressed_keys = pygame.key.get_pressed()
+            cattle.update(pressed_keys)
+            wolf.update(pressed_keys)
 
-        # Проверка столкновения овцы и волка
-        if pygame.sprite.collide_mask(cattle, wolf):
-            cattle.kill()  # Овца исчезает
+            # Проверка столкновения овцы и волка
+            if pygame.sprite.collide_mask(cattle, wolf):
+                cattle.kill()  # Овца исчезает
 
-        # Отрисовка
-        screen.blit(background, (0, 0))
-        grass.draw(screen)
-        items.draw(screen)
-        animals.draw(screen)
+            # Отрисовка
+            screen.blit(background, (0, 0))
+            grass.draw(screen)
+            items.draw(screen)
+            animals.draw(screen)
 
         pygame.display.update()
         clock.tick(FPS)
