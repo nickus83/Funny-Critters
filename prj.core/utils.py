@@ -1,23 +1,25 @@
 # -*- coding: utf-8 -*-
+"""Utility functions for loading images and sounds."""
 import os.path as osp
-import pygame
-from pygame.locals import *
+from typing import Optional, Tuple, Dict, Any, Union
 
-def load_image(name, colorkey=None):
+import pygame
+from pygame import Surface
+
+
+def load_image(name: str, colorkey: Optional[Union[int, Tuple[int, int, int]]] = None) -> Surface:
     """Load an image with optional colorkey for transparency."""
     fullname = osp.join('prj.data', 'images', name)
 
     if not osp.exists(fullname):
-        print(f"Cannot load image: {fullname} (File not found)")
-        raise SystemExit(f"Image file not found: {fullname}")
+        raise FileNotFoundError(f"Image file not found: {fullname}")
 
     try:
         image = pygame.image.load(fullname)
-    except pygame.error as message:
-        print(f"Cannot load image: {name}")
-        raise SystemExit(message)
+    except pygame.error as e:
+        raise pygame.error(f"Cannot load image: {name}") from e
 
-    image = image.convert()  # Convert for faster blitting
+    image = image.convert()
 
     if colorkey is not None:
         if colorkey == -1:
@@ -27,11 +29,11 @@ def load_image(name, colorkey=None):
     return image
 
 
-def load_sound(name):
+def load_sound(name: str) -> Any:
     """Load a sound file or return dummy object if mixer is not available."""
 
     class NoneSound:
-        def play(self, *args, **kwargs):
+        def play(self, *args, **kwargs) -> None:
             pass
 
     if not pygame.mixer or not pygame.mixer.get_init():
@@ -40,33 +42,31 @@ def load_sound(name):
     fullname = osp.join('prj.data', name)
 
     if not osp.exists(fullname):
-        print(f"Cannot load sound: {fullname} (File not found)")
+        print(f"Warning: Sound file not found: {fullname}")
         return NoneSound()
 
     try:
         sound = pygame.mixer.Sound(fullname)
-    except pygame.error as message:
-        print(f"Cannot load sound: {name}")
+    except pygame.error:
+        print(f"Warning: Cannot load sound: {name}")
         return NoneSound()
 
     return sound
 
 
-def load_png(name, colorkey=None):
+def load_png(name: str, colorkey: Optional[Union[int, Tuple[int, int, int]]] = None) -> Surface:
     """Load a PNG image with alpha channel."""
     fullname = osp.join('prj.data', 'images', name)
 
     if not osp.exists(fullname):
-        print(f"Cannot load image: {fullname} (File not found)")
-        raise SystemExit(f"Image file not found: {fullname}")
+        raise FileNotFoundError(f"Image file not found: {fullname}")
 
     try:
         image = pygame.image.load(fullname)
-    except pygame.error as message:
-        print(f"Cannot load image: {name}")
-        raise SystemExit(message)
+    except pygame.error as e:
+        raise pygame.error(f"Cannot load image: {name}") from e
 
-    image = image.convert_alpha()  # Preserve transparency
+    image = image.convert_alpha()
 
     if colorkey is not None:
         if colorkey == -1:
@@ -76,19 +76,15 @@ def load_png(name, colorkey=None):
     return image
 
 
-def import_images():
-    """Load sprite sheets and return dictionaries of subsurfaces for environment, grass, and animals."""
+def import_images() -> Tuple[Dict[str, Surface], Dict[str, Surface], Dict[str, Surface]]:
+    """Load sprite sheets and return dictionaries for environment, grass, and animals."""
 
-    try:
-        forest_source = load_png("forest.png")
-        animals_source = load_png("animals1.png")
-        wolf_source = load_png("wolf.png")
-    except SystemExit as e:
-        print("Failed to load one or more image files:", e)
-        raise
+    forest_source = load_png("forest.png")
+    animals_source = load_png("animals1.png")
+    wolf_source = load_png("wolf.png")
 
     # Environment tiles (32x32)
-    env_images = {
+    env_images: Dict[str, Surface] = {
         # Row 0
         'background_tile': forest_source.subsurface(0, 0, 32, 32),
         'hubble2': forest_source.subsurface(32, 0, 32, 32),
@@ -98,7 +94,6 @@ def import_images():
         'rocks3': forest_source.subsurface(160, 0, 32, 32),
         'bush_flower1': forest_source.subsurface(192, 0, 32, 32),
         'bush_flower2': forest_source.subsurface(224, 0, 32, 32),
-
         # Row 1
         'hubble3': forest_source.subsurface(32, 32, 32, 32),
         'hubble_flower': forest_source.subsurface(64, 32, 32, 32),
@@ -107,7 +102,6 @@ def import_images():
         'rocks2': forest_source.subsurface(160, 32, 32, 32),
         'bush1': forest_source.subsurface(192, 32, 32, 32),
         'bush2': forest_source.subsurface(224, 32, 32, 32),
-
         # Row 2
         'nenuphar1': forest_source.subsurface(0, 64, 32, 32),
         'nenuphar2': forest_source.subsurface(32, 64, 32, 32),
@@ -117,13 +111,12 @@ def import_images():
         'rocks1': forest_source.subsurface(160, 64, 32, 32),
         'wood1': forest_source.subsurface(192, 64, 32, 32),
         'wood2': forest_source.subsurface(224, 64, 32, 32),
-
         # Row 3 (grass base)
-        'grass_base': forest_source.subsurface(0, 96, 32, 32),  # fallback
+        'grass_base': forest_source.subsurface(0, 96, 32, 32),
     }
 
     # Grass tiles (various sizes)
-    grass_images = {
+    grass_images: Dict[str, Surface] = {
         'grass1': forest_source.subsurface(96, 96, 32, 32),
         'grass2': forest_source.subsurface(128, 96, 32, 32),
         'grass3': forest_source.subsurface(96, 128, 64, 64),
@@ -131,7 +124,7 @@ def import_images():
     }
 
     # Animal sprites
-    animal_images = {
+    animal_images: Dict[str, Surface] = {
         # Pig
         'pig_down0': animals_source.subsurface(48, 0, 48, 48),
         'pig_down1': animals_source.subsurface(0, 0, 48, 48),
@@ -145,7 +138,6 @@ def import_images():
         'pig_up0': animals_source.subsurface(48, 144, 48, 48),
         'pig_up1': animals_source.subsurface(0, 144, 48, 48),
         'pig_up2': animals_source.subsurface(96, 144, 48, 48),
-
         # Goat
         'goat_down0': animals_source.subsurface(192, 0, 48, 48),
         'goat_down1': animals_source.subsurface(144, 0, 48, 48),
@@ -159,7 +151,6 @@ def import_images():
         'goat_up0': animals_source.subsurface(192, 144, 48, 48),
         'goat_up1': animals_source.subsurface(144, 144, 48, 48),
         'goat_up2': animals_source.subsurface(240, 144, 48, 48),
-
         # Sheep
         'sheep_down0': animals_source.subsurface(336, 0, 48, 48),
         'sheep_down1': animals_source.subsurface(288, 0, 48, 48),
@@ -173,7 +164,6 @@ def import_images():
         'sheep_up0': animals_source.subsurface(336, 144, 48, 48),
         'sheep_up1': animals_source.subsurface(288, 144, 48, 48),
         'sheep_up2': animals_source.subsurface(384, 144, 48, 48),
-
         # Wolf
         'wolf_down0': wolf_source.subsurface(64, 0, 64, 64),
         'wolf_down1': wolf_source.subsurface(0, 0, 64, 64),
@@ -192,11 +182,14 @@ def import_images():
     return env_images, grass_images, animal_images
 
 
-def round_32(x, base=32):
+def round_32(x: int, base: int = 32) -> int:
     """
     Round x down to the nearest multiple of base.
-    Example: round_32(70, 32) → 64, round_32(33, 32) → 32.
-    If x == 0, returns 0.
+
+    Examples:
+        round_32(70, 32) -> 64
+        round_32(33, 32) -> 32
+        round_32(0, 32) -> 0
     """
     if x == 0:
         return 0
